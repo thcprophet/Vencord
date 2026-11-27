@@ -1,8 +1,10 @@
+import { BlockedUsers } from "./BlockedUsers";
 import { addGlobalContextMenuPatch, removeGlobalContextMenuPatch } from "@api/ContextMenu";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
 import { findStoreLazy } from "@webpack";
 import {
+    SelectedGuildStore,
     ChannelStore,
     FluxDispatcher,
     Menu,
@@ -23,8 +25,13 @@ export const settings = definePluginSettings({
     },
     blockedUsers: {
         type: OptionType.STRING,
-        description: "User IDs to auto-disconnect from voice (comma or space separated)",
-        default: ""
+        description: "User IDs to auto-disconnect from voice",
+        default: "",
+        hidden: true
+    },
+    blockedUsersManager: {
+        type: OptionType.COMPONENT,
+        component: BlockedUsersSettings
     },
     guildIds: {
         type: OptionType.STRING,
@@ -32,6 +39,16 @@ export const settings = definePluginSettings({
         default: ""
     }
 });
+
+function BlockedUsersSettings() {
+    const { blockedUsers } = settings.use(["blockedUsers"]);
+
+    return <BlockedUsers
+        blockedUsers={blockedUsers}
+        guildId={SelectedGuildStore.getGuildId()}
+        onChange={value => settings.store.blockedUsers = value}
+    />;
+};
 
 interface VoiceState {
     userId: string;

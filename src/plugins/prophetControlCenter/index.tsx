@@ -1,7 +1,9 @@
+import { BlockedUsers } from "../autoVcKick/BlockedUsers";
+import { SelectedGuildStore } from "@webpack/common";
+import { RestAPI, useState, GuildMemberStore, SelectedGuildStore, UserStore, useEffect, ScrollerThin } from "@webpack/common";
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { ModalCloseButton, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { ScrollerThin, useState } from "@webpack/common";
 
 import { settings as autoKickSettings } from "../autoVcKick";
 import { settings as autoJoinSettings, getWatchedChannelId, stopWatching } from "../autoJoinVc";
@@ -39,43 +41,58 @@ function DiscordSwitch({ label, checked, onChange }: { label: string; checked: b
     );
 }
 
+
+
+
 function AutoKickSection() {
-    const { enabled, blockedUsers, guildIds } = autoKickSettings.use(["enabled", "blockedUsers", "guildIds"]);
-    const blocked = blockedUsers.split(/[\s,]+/).filter(Boolean);
-    const updateBlocked = (next: string[]) => {
-        autoKickSettings.store.blockedUsers = [...new Set(next.map(value => value.trim()).filter(Boolean))].join(", ");
-    };
+    const { enabled, blockedUsers, guildIds } =
+        autoKickSettings.use(["enabled", "blockedUsers", "guildIds"]);
+
+    const guildId = SelectedGuildStore.getGuildId();
 
     return <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={cardStyle}>
             <div style={titleStyle}>AutoVcKick</div>
-            <div style={descriptionStyle}>Automatically disconnect users in your block list when they join a voice channel.</div>
-            <DiscordSwitch label="Auto-kick enabled" checked={enabled} onChange={value => autoKickSettings.store.enabled = value} />
+
+            <div style={descriptionStyle}>
+                Automatically disconnect users in your block list when they join a voice channel.
+            </div>
+
+            <DiscordSwitch
+                label="Auto-kick enabled"
+                checked={enabled}
+                onChange={value => autoKickSettings.store.enabled = value}
+            />
         </div>
+
         <div style={cardStyle}>
-            <div style={titleStyle}>Blocked users</div>
-            <div style={descriptionStyle}>Manage Discord user IDs. You can also add or remove users from their context menu.</div>
-            {blocked.length === 0 && <div style={descriptionStyle}>No users are currently blocked.</div>}
-            {blocked.map(id => <div key={id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <code style={{ flex: 1, overflowWrap: "anywhere" }}>{id}</code>
-                <button style={dangerButtonStyle} onClick={() => updateBlocked(blocked.filter(value => value !== id))}>Remove</button>
-            </div>)}
-            <input style={fieldStyle} placeholder="Enter a user ID and press Add" id="prophet-control-new-user" />
-            <button style={buttonStyle} onClick={() => {
-                const input = document.getElementById("prophet-control-new-user") as HTMLInputElement | null;
-                const value = input?.value.trim();
-                if (!value) return;
-                updateBlocked([...blocked, value]);
-                if (input) input.value = "";
-            }}>Add user ID</button>
+            <BlockedUsers
+                blockedUsers={blockedUsers}
+                guildId={guildId}
+                onChange={value => autoKickSettings.store.blockedUsers = value}
+            />
         </div>
+
         <div style={cardStyle}>
             <div style={titleStyle}>Server restrictions</div>
-            <div style={descriptionStyle}>Leave empty to apply the block list in every server. Separate multiple server IDs with commas or spaces.</div>
-            <textarea style={{ ...fieldStyle, minHeight: 72, resize: "vertical" }} value={guildIds} onChange={event => autoKickSettings.store.guildIds = event.currentTarget.value} placeholder="Server IDs (optional)" />
+
+            <div style={descriptionStyle}>
+                Leave empty to apply the block list in every server.
+                Separate multiple server IDs with commas or spaces.
+            </div>
+
+            <textarea
+                style={{ ...fieldStyle, minHeight: 72, resize: "vertical" }}
+                value={guildIds}
+                onChange={event =>
+                    autoKickSettings.store.guildIds = event.currentTarget.value
+                }
+                placeholder="Server IDs (optional)"
+            />
         </div>
     </div>;
 }
+
 
 function AutoJoinSection() {
     const { switchFromOtherVc } = autoJoinSettings.use(["switchFromOtherVc"]);
@@ -142,7 +159,7 @@ function ControlCenterModal(props: any) {
     const [activeTab, setActiveTab] = useState("AutoVcKick");
     const current = TABS.find(tab => tab.id === activeTab)!;
 
-    return <Root {...props} size="large">
+    return <Root {...props} size="dynamic">
         <div style={{
             display: "flex",
             width: 1040,
