@@ -8,12 +8,20 @@ interface CommandRule {
     command: string;
     serverId: string;
     message: string;
+    addSquareBracketsToVcCapacity?: boolean;
+    setMessageAsChannelStatus?: boolean;
+    deletePreviousCommand?: boolean;
+    updateVcCapacity?: boolean;
 }
 
 const DEFAULT_RULES: CommandRule[] = [{
     command: "lfg",
     serverId: "574217343635554305",
-    message: "EU competitive Chill\n{link}"
+    message: "EU competitive Chill\n{link}",
+    addSquareBracketsToVcCapacity: false,
+    setMessageAsChannelStatus: false,
+    deletePreviousCommand: false,
+    updateVcCapacity: false
 }];
 
 export const settings = definePluginSettings({
@@ -22,7 +30,13 @@ export const settings = definePluginSettings({
 });
 
 const normalizeName = (s: string) => s.replace(/^\//, "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 32);
-const getRules = (): CommandRule[] => settings.store.rules ?? [];
+const getRules = (): CommandRule[] => (settings.store.rules ?? []).map(rule => ({
+    addSquareBracketsToVcCapacity: false,
+    setMessageAsChannelStatus: false,
+    deletePreviousCommand: false,
+    updateVcCapacity: false,
+    ...rule
+}));
 
 function findRule(name: string, guildId?: string | null) {
     const rules = getRules().filter(r => normalizeName(r.command) === name && r.message.trim());
@@ -72,14 +86,10 @@ function makeCommand(name: string) {
 }
 
 const registered = new Set<string>();
-
 function unregisterAll() {
     for (const name of registered) {
-        try {
-            unregisterCommand(name);
-        } catch (err) {
-            console.warn(`[userCommands] Command /${name} was already unregistered`, err);
-        }
+        try { unregisterCommand(name); }
+        catch (err) { console.warn(`[userCommands] Command /${name} was already unregistered`, err); }
     }
     registered.clear();
 }
@@ -105,6 +115,32 @@ const inputStyle = {
 const buttonStyle = { padding: "8px 12px", borderRadius: 4, border: "none", cursor: "pointer", background: "var(--brand-500, #5865f2)", color: "#fff", fontSize: 14 };
 const labelStyle = { fontSize: 12, fontWeight: 600, textTransform: "uppercase" as const, opacity: 0.75, marginBottom: 4 };
 
+function DiscordSwitch({ checked, onChange, label, description }: { checked: boolean; onChange: (value: boolean) => void; label: string; description?: string; }) {
+    return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "7px 0" }}>
+            <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontSize: 14, color: "var(--header-primary)" }}>{label}</span>
+                {description && <span style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.35 }}>{description}</span>}
+            </div>
+            <button
+                type="button"
+                role="switch"
+                aria-checked={checked}
+                aria-label={label}
+                onClick={() => onChange(!checked)}
+                style={{
+                    flex: "0 0 auto", width: 40, height: 24, padding: 3, border: 0, borderRadius: 999,
+                    background: checked ? "var(--status-positive, #23a55a)" : "var(--background-modifier-accent, #4e5058)",
+                    cursor: "pointer", display: "flex", alignItems: "center",
+                    justifyContent: checked ? "flex-end" : "flex-start", transition: "background 120ms ease"
+                }}
+            >
+                <span style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px #0005" }} />
+            </button>
+        </div>
+    );
+}
+
 export function RulesEditor() {
     const [rules, setRules] = useState<CommandRule[]>(() => getRules());
     const commit = (next: CommandRule[]) => {
@@ -114,7 +150,10 @@ export function RulesEditor() {
     };
     const edit = (index: number, patch: Partial<CommandRule>) => commit(rules.map((rule, i) => i === index ? { ...rule, ...patch } : rule));
     const remove = (index: number) => commit(rules.filter((_, i) => i !== index));
-    const add = () => commit([...rules, { command: "", serverId: "", message: "" }]);
+    const add = () => commit([...rules, {
+        command: "", serverId: "", message: "", addSquareBracketsToVcCapacity: false,
+        setMessageAsChannelStatus: false, deletePreviousCommand: false, updateVcCapacity: false
+    }]);
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -145,6 +184,12 @@ export function RulesEditor() {
                         <div>
                             <div style={labelStyle}>Message</div>
                             <textarea style={{ ...inputStyle, minHeight: 70, resize: "vertical" }} placeholder={"EU competitive Chill\n{link}"} value={rule.message} onChange={event => edit(i, { message: event.currentTarget.value })} />
+                        </div>
+                        <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: 6 }}>
+                            <DiscordSwitch label="Add square brackets to vcCapacity" checked={!!rule.addSquareBracketsToVcCapacity} onChange={value => edit(i, { addSquareBracketsToVcCapacity: value })} />
+                            <DiscordSwitch label="Set message as channel status" checked={!!rule.setMessageAsChannelStatus} onChange={value => edit(i, { setMessageAsChannelStatus: value })} />
+                            <DiscordSwitch label="Delete previous command" checked={!!rule.deletePreviousCommand} onChange={value => edit(i, { deletePreviousCommand: value })} />
+                            <DiscordSwitch label="Update VC Capacity" description="Refresh the {vcCapacity} value while the message is active." checked={!!rule.updateVcCapacity} onChange={value => edit(i, { updateVcCapacity: value })} />
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div style={{ fontSize: 12, color: duplicate ? "#f23f42" : undefined, opacity: duplicate ? 1 : 0.7 }}>
