@@ -158,7 +158,7 @@ function ControlCenterModal(props: any) {
                 boxSizing: "border-box",
                 padding: "24px 12px",
                 overflow: "hidden",
-                borderRight: "1px solid var(--border-subtle"
+                borderRight: "1px solid var(--border-subtle)"
             }}>
                 <div style={{
                     padding: "0 10px 14px",
@@ -209,7 +209,7 @@ function ControlCenterModal(props: any) {
                     height: 56,
                     boxSizing: "border-box",
                     padding: "0 16px 0 20px",
-                    borderBottom: "1px solid var(--border-subtle"
+                    borderBottom: "1px solid var(--border-subtle)"
                 }}>
                     <div style={{
                         fontSize: 16,
