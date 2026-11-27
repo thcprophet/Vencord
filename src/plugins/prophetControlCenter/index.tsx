@@ -1,7 +1,7 @@
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
-import { openModal } from "@utils/modal";
+import { ModalCloseButton, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { Modal, TabBar, useState } from "@webpack/common";
+import { ScrollerThin, useState } from "@webpack/common";
 
 import { settings as autoKickSettings } from "../autoVcKick";
 import { settings as autoJoinSettings, getWatchedChannelId, stopWatching } from "../autoJoinVc";
@@ -109,28 +109,73 @@ function CommandsSection() {
     </div>;
 }
 
+const Root = ModalRoot as any;
+const CloseButton = ModalCloseButton as any;
+
+const TABS = [
+    { id: "AutoVcKick", label: "AutoVcKick" },
+    { id: "AutoJoinVc", label: "AutoJoinVc" },
+    { id: "userCommands", label: "userCommands" }
+];
+
+function SidebarItem({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void; }) {
+    const [hover, setHover] = useState(false);
+    return <button
+        type="button"
+        role="tab"
+        aria-selected={selected}
+        onClick={onClick}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+            display: "block", width: "100%", textAlign: "left", border: 0, cursor: "pointer",
+            padding: "8px 10px", marginBottom: 2, borderRadius: 4, font: "inherit", fontSize: 16, lineHeight: "20px",
+            fontWeight: selected ? 500 : 400,
+            background: selected ? "var(--background-modifier-selected)" : hover ? "var(--background-modifier-hover)" : "transparent",
+            color: selected ? "var(--interactive-active, var(--header-primary))" : "var(--interactive-normal, var(--text-muted))"
+        }}
+    >{label}</button>;
+}
+
 function ControlCenterModal(props: any) {
     const [activeTab, setActiveTab] = useState("AutoVcKick");
-    const tabs = ["AutoVcKick", "AutoJoinVc", "userCommands"];
+    const current = TABS.find(tab => tab.id === activeTab)!;
 
-    // Same structure as Vencord's own settings tabs (e.g. Themes): Discord's Modal gives the
-    // title bar, close button and thin scrollbar; the content is a centered column below.
-    return <Modal {...props} size="xl" title="thcProphet's Plugin Dashboard">
-        <div style={{ width: "100%", maxWidth: 766, margin: "0 auto", paddingBottom: 24 }}>
-            <TabBar
-                type="top"
-                look="brand"
-                className="vc-settings-tab-bar"
-                selectedItem={activeTab}
-                onItemSelect={setActiveTab}
-            >
-                {tabs.map(tab => <TabBar.Item key={tab} id={tab} className="vc-settings-tab-bar-item">{tab}</TabBar.Item>)}
-            </TabBar>
-            {activeTab === "AutoVcKick" && <AutoKickSection />}
-            {activeTab === "AutoJoinVc" && <AutoJoinSection />}
-            {activeTab === "userCommands" && <CommandsSection />}
+    // Fixed size so the modal never resizes when switching tabs; only the right pane scrolls.
+    return <Root {...props} size="large">
+        <div style={{ display: "flex", width: 1040, height: 700, maxWidth: "92vw", maxHeight: "88vh", overflow: "hidden" }}>
+            {/* Sidebar, like Discord's settings navigation */}
+            <nav role="tablist" aria-orientation="vertical" style={{
+                flex: "0 0 240px", boxSizing: "border-box", padding: "24px 12px", overflow: "hidden",
+                borderRight: "1px solid var(--border-subtle)"
+            }}>
+                <div style={{
+                    padding: "0 10px 14px", marginBottom: 12, borderBottom: "1px solid var(--border-subtle)",
+                    fontSize: 16, lineHeight: "20px", fontWeight: 700, color: "var(--header-primary)"
+                }}>thcProphet's Plugin Dashboard</div>
+                <div style={{ padding: "0 10px 8px", fontSize: 12, fontWeight: 600, color: "var(--header-secondary, var(--text-muted))" }}>Plugins</div>
+                {TABS.map(tab => <SidebarItem key={tab.id} label={tab.label} selected={tab.id === activeTab} onClick={() => setActiveTab(tab.id)} />)}
+            </nav>
+
+            {/* Content pane: header with page title + close button, then the scrollable page */}
+            <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex", flexDirection: "column" }}>
+                <div style={{
+                    flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    height: 56, boxSizing: "border-box", padding: "0 16px 0 20px", borderBottom: "1px solid var(--border-subtle)"
+                }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--header-primary)" }}>{current.label}</div>
+                    <CloseButton onClick={props.onClose} />
+                </div>
+                <ScrollerThin orientation="auto" fade style={{ flex: "1 1 auto", minHeight: 0 }}>
+                    <div style={{ maxWidth: 700, margin: "0 auto", padding: "24px 24px 32px" }}>
+                        {activeTab === "AutoVcKick" && <AutoKickSection />}
+                        {activeTab === "AutoJoinVc" && <AutoJoinSection />}
+                        {activeTab === "userCommands" && <CommandsSection />}
+                    </div>
+                </ScrollerThin>
+            </div>
         </div>
-    </Modal>;
+    </Root>;
 }
 
 function ControlCenterIcon({ height = 20, width = 20 }: { height?: number; width?: number; }) {
