@@ -1,5 +1,8 @@
 
+import * as DataStore from "@api/DataStore";
 import { RestAPI } from "@webpack/common";
+
+const CACHE_KEY = "AutoVcKick_UserCache_v1";
 
 const USER_TTL = 7 * 24 * 60 * 60 * 1000;
 const MEMBER_TTL = 3 * 24 * 60 * 60 * 1000;
@@ -21,17 +24,81 @@ export interface CachedMember {
     avatar?: string | null;
 }
 
+interface PersistedCache {
+    users: [string, CacheEntry<CachedUser>][];
+    members: [string, CacheEntry<CachedMember>][];
+}
+
 const userCache = new Map<string, CacheEntry<CachedUser>>();
 const memberCache = new Map<string, CacheEntry<CachedMember>>();
 
 const userRequests = new Map<string, Promise<CachedUser | null>>();
 const memberRequests = new Map<string, Promise<CachedMember | null>>();
 
+let loadPromise: Promise<void> | null = null;
+let saveQueue = Promise.resolve();
+
+async function loadCache() {
+    if (!loadPromise) {
+        loadPromise = (async () => {
+            try {
+                const stored = await DataStore.get<PersistedCache>(CACHE_KEY);
+
+                if (!stored || typeof stored !== "object") return;
+
+                if (Array.isArray(stored.users)) {
+                    for (const [id, entry] of stored.users) {
+                        if (
+                            typeof id === "string" &&
+                            entry?.value &&
+                            typeof entry.expiresAt === "number"
+                        ) {
+                            userCache.set(id, entry);
+                        }
+                    }
+                }
+
+                if (Array.isArray(stored.members)) {
+                    for (const [key, entry] of stored.members) {
+                        if (
+                            typeof key === "string" &&
+                            entry?.value &&
+                            typeof entry.expiresAt === "number"
+                        ) {
+                            memberCache.set(key, entry);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("[AutoVcKick] Failed to load persistent cache", error);
+            }
+        })();
+    }
+
+    await loadPromise;
+}
+
+function saveCache() {
+    const snapshot: PersistedCache = {
+        users: Array.from(userCache.entries()),
+        members: Array.from(memberCache.entries())
+    };
+
+    // Serialize writes to prevent older snapshots overwriting newer ones.
+    saveQueue = saveQueue
+        .then(() => DataStore.set(CACHE_KEY, snapshot))
+        .catch(error => {
+            console.error("[AutoVcKick] Failed to save persistent cache", error);
+        });
+}
+
 function isFresh<T>(entry?: CacheEntry<T>) {
     return !!entry && entry.expiresAt > Date.now();
 }
 
 export async function getCachedUser(id: string): Promise<CachedUser | null> {
+    await loadCache();
+
     const cached = userCache.get(id);
 
     if (isFresh(cached)) return cached!.value;
@@ -57,6 +124,8 @@ export async function getCachedUser(id: string): Promise<CachedUser | null> {
                 expiresAt: Date.now() + USER_TTL
             });
 
+            saveCache();
+
             return user;
         } catch (error) {
             console.error(`[AutoVcKick] Failed to fetch user ${id}`, error);
@@ -75,6 +144,8 @@ export async function getCachedMember(
     guildId: string,
     userId: string
 ): Promise<CachedMember | null> {
+    await loadCache();
+
     const key = `${guildId}:${userId}`;
     const cached = memberCache.get(key);
 
@@ -96,8 +167,11 @@ export async function getCachedMember(
                 expiresAt: Date.now() + MEMBER_TTL
             });
 
+            saveCache();
+
             return member;
-        } catch {
+        } catch (error) {
+            console.error(`[AutoVcKick] Failed to fetch guild member ${userId}`, error);
             return cached?.value ?? null;
         } finally {
             memberRequests.delete(key);
@@ -109,10 +183,13 @@ export async function getCachedMember(
     return request;
 }
 
-export function clearUserCache(userId?: string) {
+export async function clearUserCache(userId?: string) {
+    await loadCache();
+
     if (!userId) {
         userCache.clear();
         memberCache.clear();
+        saveCache();
         return;
     }
 
@@ -123,4 +200,6 @@ export function clearUserCache(userId?: string) {
             memberCache.delete(key);
         }
     }
+
+    saveCache();
 }
