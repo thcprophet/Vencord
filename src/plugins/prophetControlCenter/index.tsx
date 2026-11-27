@@ -186,7 +186,7 @@ function ControlCenterModal(props: any) {
                     fontWeight: 700,
                     color: "var(--header-primary)"
                 }}>
-                    thcProphet's Plugin Dashboard
+                    the Prophecy Dashboard
                 </div>
 
                 <div style={{
