@@ -1,38 +1,56 @@
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { ModalCloseButton, ModalContent, ModalHeader, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { useRef, useState } from "@webpack/common";
+import { useState } from "@webpack/common";
 
 import { settings as autoKickSettings } from "../autoVcKick";
 import { settings as autoJoinSettings, getWatchedChannelId, stopWatching } from "../autoJoinVc";
 import { RulesEditor, settings as commandSettings } from "../userCommands";
 
-const panelStyle = { display: "flex", flexDirection: "column" as const, gap: 14, padding: 4, color: "var(--text-normal)" };
-const cardStyle = { border: "1px solid var(--border-subtle)", borderRadius: 8, padding: 14, display: "flex", flexDirection: "column" as const, gap: 10 };
+const buttonStyle = {
+    padding: "8px 12px", border: 0, borderRadius: 5, background: "var(--brand-500)",
+    color: "white", cursor: "pointer", fontWeight: 600
+};
+const dangerButtonStyle = { ...buttonStyle, background: "var(--button-danger-background, #da373c)" };
+const cardStyle = {
+    border: "1px solid var(--border-subtle)", borderRadius: 8, padding: 14,
+    display: "flex", flexDirection: "column" as const, gap: 10
+};
 const titleStyle = { fontSize: 16, fontWeight: 700, color: "var(--header-primary)" };
 const descriptionStyle = { fontSize: 13, color: "var(--text-muted)", lineHeight: 1.4 };
-const fieldStyle = { width: "100%", boxSizing: "border-box" as const, padding: "9px 10px", borderRadius: 5, border: "1px solid var(--input-border, var(--border-subtle))", background: "var(--input-background, var(--background-secondary))", color: "var(--text-normal)", font: "inherit" };
-const buttonStyle = { padding: "8px 12px", border: 0, borderRadius: 5, background: "var(--brand-500)", color: "white", cursor: "pointer", fontWeight: 600 };
-const dangerButtonStyle = { ...buttonStyle, background: "var(--button-danger-background, #da373c)" };
+const fieldStyle = {
+    width: "100%", boxSizing: "border-box" as const, padding: "9px 10px", borderRadius: 5,
+    border: "1px solid var(--input-border, var(--border-subtle))",
+    background: "var(--input-background, var(--background-secondary))", color: "var(--text-normal)", font: "inherit"
+};
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void; }) {
-    return <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer" }}>
-        <span>{label}</span>
-        <input type="checkbox" checked={checked} onChange={event => onChange(event.currentTarget.checked)} />
-    </label>;
+function DiscordSwitch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void; }) {
+    return (
+        <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, cursor: "pointer" }}>
+            <span>{label}</span>
+            <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={event => { event.preventDefault(); onChange(!checked); }} style={{
+                width: 40, height: 24, padding: 3, border: 0, borderRadius: 999,
+                background: checked ? "var(--status-positive, #23a55a)" : "var(--background-modifier-accent, #4e5058)",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: checked ? "flex-end" : "flex-start"
+            }}>
+                <span style={{ width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 2px #0005" }} />
+            </button>
+        </label>
+    );
 }
 
 function AutoKickSection() {
     const { enabled, blockedUsers, guildIds } = autoKickSettings.use(["enabled", "blockedUsers", "guildIds"]);
     const blocked = blockedUsers.split(/[\s,]+/).filter(Boolean);
-    const newUserRef = useRef<HTMLInputElement>(null);
-    const updateBlocked = (next: string[]) => autoKickSettings.store.blockedUsers = [...new Set(next.map(value => value.trim()).filter(Boolean))].join(", ");
+    const updateBlocked = (next: string[]) => {
+        autoKickSettings.store.blockedUsers = [...new Set(next.map(value => value.trim()).filter(Boolean))].join(", ");
+    };
 
-    return <div style={panelStyle}>
+    return <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={cardStyle}>
             <div style={titleStyle}>AutoVcKick</div>
             <div style={descriptionStyle}>Automatically disconnect users in your block list when they join a voice channel.</div>
-            <Toggle label="Auto-kick enabled" checked={enabled} onChange={value => autoKickSettings.store.enabled = value} />
+            <DiscordSwitch label="Auto-kick enabled" checked={enabled} onChange={value => autoKickSettings.store.enabled = value} />
         </div>
         <div style={cardStyle}>
             <div style={titleStyle}>Blocked users</div>
@@ -42,12 +60,13 @@ function AutoKickSection() {
                 <code style={{ flex: 1, overflowWrap: "anywhere" }}>{id}</code>
                 <button style={dangerButtonStyle} onClick={() => updateBlocked(blocked.filter(value => value !== id))}>Remove</button>
             </div>)}
-            <input ref={newUserRef} style={fieldStyle} placeholder="Enter a user ID and press Add" />
+            <input style={fieldStyle} placeholder="Enter a user ID and press Add" id="prophet-control-new-user" />
             <button style={buttonStyle} onClick={() => {
-                const value = newUserRef.current?.value.trim();
+                const input = document.getElementById("prophet-control-new-user") as HTMLInputElement | null;
+                const value = input?.value.trim();
                 if (!value) return;
                 updateBlocked([...blocked, value]);
-                if (newUserRef.current) newUserRef.current.value = "";
+                if (input) input.value = "";
             }}>Add user ID</button>
         </div>
         <div style={cardStyle}>
@@ -61,11 +80,11 @@ function AutoKickSection() {
 function AutoJoinSection() {
     const { switchFromOtherVc } = autoJoinSettings.use(["switchFromOtherVc"]);
     const watchedId = getWatchedChannelId();
-    return <div style={panelStyle}>
+    return <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={cardStyle}>
             <div style={titleStyle}>AutoJoinVc</div>
             <div style={descriptionStyle}>Wait for a free slot in a full voice channel and join automatically.</div>
-            <Toggle label="Switch from another voice channel when a slot opens" checked={switchFromOtherVc} onChange={value => autoJoinSettings.store.switchFromOtherVc = value} />
+            <DiscordSwitch label="Switch from another voice channel when a slot opens" checked={switchFromOtherVc} onChange={value => autoJoinSettings.store.switchFromOtherVc = value} />
         </div>
         <div style={cardStyle}>
             <div style={titleStyle}>Current watch</div>
@@ -80,7 +99,7 @@ function AutoJoinSection() {
 
 function CommandsSection() {
     const { rules } = commandSettings.use(["rules"]);
-    return <div style={panelStyle}>
+    return <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={cardStyle}>
             <div style={titleStyle}>userCommands</div>
             <div style={descriptionStyle}>Configure slash commands and their per-server messages. Changes are saved to the plugin's existing rules setting.</div>
@@ -93,21 +112,30 @@ function CommandsSection() {
 function ControlCenterModal(props: any) {
     const [activeTab, setActiveTab] = useState("AutoVcKick");
     const tabs = ["AutoVcKick", "AutoJoinVc", "userCommands"];
+
     return <ModalRoot {...props} size="large">
-        <ModalHeader>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>Prophet Control Center</div>
-            <ModalCloseButton onClick={props.onClose} />
-        </ModalHeader>
-        <ModalContent>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: 4 }}>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {tabs.map(tab => <button key={tab} style={{ ...buttonStyle, background: activeTab === tab ? "var(--brand-500)" : "var(--background-modifier-selected)", color: activeTab === tab ? "white" : "var(--text-normal)" }} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+        <div style={{ width: 760, height: 690, maxWidth: "90vw", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <ModalHeader>
+                <div style={{ fontSize: 20, fontWeight: 700 }}>Prophet Control Center</div>
+                <ModalCloseButton onClick={props.onClose} />
+            </ModalHeader>
+            <ModalContent>
+                <div style={{ height: 630, display: "flex", flexDirection: "column", gap: 14, overflow: "hidden", padding: 4 }}>
+                    <div style={{ display: "flex", gap: 8, flex: "0 0 auto" }}>
+                        {tabs.map(tab => <button key={tab} style={{
+                            ...buttonStyle,
+                            background: activeTab === tab ? "var(--brand-500)" : "var(--background-modifier-selected)",
+                            color: activeTab === tab ? "white" : "var(--text-normal)"
+                        }} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+                    </div>
+                    <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", overflowX: "hidden", paddingRight: 4 }}>
+                        {activeTab === "AutoVcKick" && <AutoKickSection />}
+                        {activeTab === "AutoJoinVc" && <AutoJoinSection />}
+                        {activeTab === "userCommands" && <CommandsSection />}
+                    </div>
                 </div>
-                {activeTab === "AutoVcKick" && <AutoKickSection />}
-                {activeTab === "AutoJoinVc" && <AutoJoinSection />}
-                {activeTab === "userCommands" && <CommandsSection />}
-            </div>
-        </ModalContent>
+            </ModalContent>
+        </div>
     </ModalRoot>;
 }
 
@@ -131,8 +159,5 @@ export default definePlugin({
     name: "ProphetControlCenter",
     description: "A unified in-Discord control panel for AutoVcKick, AutoJoinVc and userCommands",
     authors: [{ name: "thcProphet", id: 828010614349365288n }],
-    chatBarButton: {
-        icon: ControlCenterIcon,
-        render: ControlCenterButton
-    }
+    chatBarButton: { icon: ControlCenterIcon, render: ControlCenterButton }
 });
