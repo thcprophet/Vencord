@@ -137,37 +137,109 @@ function SidebarItem({ label, selected, onClick }: { label: string; selected: bo
     >{label}</button>;
 }
 
+
 function ControlCenterModal(props: any) {
     const [activeTab, setActiveTab] = useState("AutoVcKick");
     const current = TABS.find(tab => tab.id === activeTab)!;
 
-    // Fixed size so the modal never resizes when switching tabs; only the right pane scrolls.
     return <Root {...props} size="large">
-        <div style={{ display: "flex", width: 1040, height: 700, maxWidth: "92vw", maxHeight: "88vh", overflow: "hidden" }}>
-            {/* Sidebar, like Discord's settings navigation */}
+        <div style={{
+            display: "flex",
+            width: 1040,
+            height: 700,
+            maxWidth: "92vw",
+            maxHeight: "88vh",
+            boxSizing: "border-box",
+            overflow: "hidden"
+        }}>
+            {/* Sidebar */}
             <nav role="tablist" aria-orientation="vertical" style={{
-                flex: "0 0 240px", boxSizing: "border-box", padding: "24px 12px", overflow: "hidden",
-                borderRight: "1px solid var(--border-subtle)"
+                flex: "0 0 240px",
+                boxSizing: "border-box",
+                padding: "24px 12px",
+                overflow: "hidden",
+                borderRight: "1px solid var(--border-subtle"
             }}>
                 <div style={{
-                    padding: "0 10px 14px", marginBottom: 12, borderBottom: "1px solid var(--border-subtle)",
-                    fontSize: 16, lineHeight: "20px", fontWeight: 700, color: "var(--header-primary)"
-                }}>thcProphet's Plugin Dashboard</div>
-                <div style={{ padding: "0 10px 8px", fontSize: 12, fontWeight: 600, color: "var(--header-secondary, var(--text-muted))" }}>Plugins</div>
-                {TABS.map(tab => <SidebarItem key={tab.id} label={tab.label} selected={tab.id === activeTab} onClick={() => setActiveTab(tab.id)} />)}
+                    padding: "0 10px 14px",
+                    marginBottom: 12,
+                    borderBottom: "1px solid var(--border-subtle)",
+                    fontSize: 16,
+                    lineHeight: "20px",
+                    fontWeight: 700,
+                    color: "var(--header-primary)"
+                }}>
+                    thcProphet's Plugin Dashboard
+                </div>
+
+                <div style={{
+                    padding: "0 10px 8px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--header-secondary, var(--text-muted))"
+                }}>
+                    Plugins
+                </div>
+
+                {TABS.map(tab => (
+                    <SidebarItem
+                        key={tab.id}
+                        label={tab.label}
+                        selected={tab.id === activeTab}
+                        onClick={() => setActiveTab(tab.id)}
+                    />
+                ))}
             </nav>
 
-            {/* Content pane: header with page title + close button, then the scrollable page */}
-            <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex", flexDirection: "column" }}>
+            {/* Content pane */}
+            <div style={{
+                flex: "1 1 0",
+                minWidth: 0,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden"
+            }}>
+                {/* Header */}
                 <div style={{
-                    flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between",
-                    height: 56, boxSizing: "border-box", padding: "0 16px 0 20px", borderBottom: "1px solid var(--border-subtle)"
+                    flex: "0 0 auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    height: 56,
+                    boxSizing: "border-box",
+                    padding: "0 16px 0 20px",
+                    borderBottom: "1px solid var(--border-subtle"
                 }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: "var(--header-primary)" }}>{current.label}</div>
+                    <div style={{
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: "var(--header-primary)"
+                    }}>
+                        {current.label}
+                    </div>
+
                     <CloseButton onClick={props.onClose} />
                 </div>
-                <ScrollerThin orientation="auto" fade style={{ flex: "1 1 auto", minHeight: 0 }}>
-                    <div style={{ maxWidth: 700, margin: "0 auto", padding: "24px 24px 32px" }}>
+
+                {/* Scrollable content */}
+                <ScrollerThin
+                    orientation="auto"
+                    fade
+                    style={{
+                        flex: "1 1 0",
+                        minWidth: 0,
+                        minHeight: 0,
+                        width: "100%"
+                    }}
+                >
+                    <div style={{
+                        width: "100%",
+                        maxWidth: 700,
+                        boxSizing: "border-box",
+                        margin: "0 auto",
+                        padding: "24px 24px 32px"
+                    }}>
                         {activeTab === "AutoVcKick" && <AutoKickSection />}
                         {activeTab === "AutoJoinVc" && <AutoJoinSection />}
                         {activeTab === "userCommands" && <CommandsSection />}
@@ -177,6 +249,7 @@ function ControlCenterModal(props: any) {
         </div>
     </Root>;
 }
+
 
 function ControlCenterIcon({ height = 20, width = 20 }: { height?: number; width?: number; }) {
     return <svg viewBox="0 0 24 24" height={height} width={width} fill="currentColor" aria-hidden="true">
