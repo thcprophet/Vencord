@@ -113,7 +113,7 @@ const inputStyle = {
     color: "var(--text-default, var(--text-normal, #dbdee1))", fontSize: 14, fontFamily: "inherit"
 };
 const buttonStyle = { padding: "8px 12px", borderRadius: 4, border: "none", cursor: "pointer", background: "var(--brand-500, #5865f2)", color: "#fff", fontSize: 14 };
-const labelStyle = { fontSize: 12, fontWeight: 600, textTransform: "uppercase" as const, opacity: 0.75, marginBottom: 4 };
+const labelStyle = { fontSize: 12, fontWeight: 600, textTransform: "uppercase" as const, color: "var(--header-secondary, var(--text-muted))", marginBottom: 4 };
 
 function DiscordSwitch({ checked, onChange, label, description }: { checked: boolean; onChange: (value: boolean) => void; label: string; description?: string; }) {
     return (
@@ -157,7 +157,7 @@ export function RulesEditor() {
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 13, color: "var(--text-default, var(--text-normal))", lineHeight: 1.4 }}>
                 Variables: <code>{"{link}"}</code> voice-channel link, <code>{"{channel}"}</code> channel mention, <code>{"{channel_name}"}</code> channel name, <code>{"{text}"}</code> optional text argument, <code>{"{vcCapacity}"}</code> voice-channel capacity.
                 <br />Same command name + different server ID = different message per server. Leave the server ID empty to use it everywhere.
             </div>
@@ -192,7 +192,7 @@ export function RulesEditor() {
                             <DiscordSwitch label="Update VC Capacity" description="Refresh the {vcCapacity} value while the message is active." checked={!!rule.updateVcCapacity} onChange={value => edit(i, { updateVcCapacity: value })} />
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontSize: 12, color: duplicate ? "#f23f42" : undefined, opacity: duplicate ? 1 : 0.7 }}>
+                            <div style={{ fontSize: 12, color: duplicate ? "#f23f42" : "var(--text-muted)" }}>
                                 {duplicate ? "Duplicate command + server: only the first one is used." : rule.command ? `Registered as /${normalizeName(rule.command)}` : "Enter a command name"}
                             </div>
                             <button style={{ ...buttonStyle, background: "#da373c" }} onClick={() => remove(i)}>Delete</button>

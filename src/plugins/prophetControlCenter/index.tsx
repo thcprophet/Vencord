@@ -1,7 +1,7 @@
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
-import { ModalCloseButton, ModalRoot, openModal } from "@utils/modal";
+import { openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
-import { ScrollerThin, TabBar, useState } from "@webpack/common";
+import { Modal, TabBar, useState } from "@webpack/common";
 
 import { settings as autoKickSettings } from "../autoVcKick";
 import { settings as autoJoinSettings, getWatchedChannelId, stopWatching } from "../autoJoinVc";
@@ -113,40 +113,24 @@ function ControlCenterModal(props: any) {
     const [activeTab, setActiveTab] = useState("AutoVcKick");
     const tabs = ["AutoVcKick", "AutoJoinVc", "userCommands"];
 
-    return <ModalRoot {...props} size="large">
-        <div style={{ width: 760, height: 690, maxWidth: "90vw", maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            {/* Header, styled like a Discord settings page title */}
-            <div style={{ flex: "0 0 auto", padding: "24px 24px 0 24px" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
-                    <div>
-                        <h2 style={{
-                            margin: 0, fontSize: 20, lineHeight: "24px", fontWeight: 700,
-                            color: "var(--header-primary)"
-                        }}>thcProphet's Plugin Dashboard</h2>
-                        <div style={{ marginTop: 4, fontSize: 14, lineHeight: "18px", color: "var(--text-muted)" }}>
-                            Configure AutoVcKick, AutoJoinVc and userCommands in one place.
-                        </div>
-                    </div>
-                    <ModalCloseButton onClick={props.onClose} />
-                </div>
-                <TabBar
-                    type="top"
-                    look="brand"
-                    className="vc-settings-tab-bar"
-                    selectedItem={activeTab}
-                    onItemSelect={setActiveTab}
-                >
-                    {tabs.map(tab => <TabBar.Item key={tab} id={tab} className="vc-settings-tab-bar-item">{tab}</TabBar.Item>)}
-                </TabBar>
-            </div>
-            {/* Discord's own thin scrollbar; no ModalContent so there is only one scroller */}
-            <ScrollerThin orientation="auto" fade style={{ flex: "1 1 auto", minHeight: 0, padding: "6px 24px 24px 24px" }}>
-                {activeTab === "AutoVcKick" && <AutoKickSection />}
-                {activeTab === "AutoJoinVc" && <AutoJoinSection />}
-                {activeTab === "userCommands" && <CommandsSection />}
-            </ScrollerThin>
+    // Same structure as Vencord's own settings tabs (e.g. Themes): Discord's Modal gives the
+    // title bar, close button and thin scrollbar; the content is a centered column below.
+    return <Modal {...props} size="xl" title="thcProphet's Plugin Dashboard">
+        <div style={{ width: "100%", maxWidth: 766, margin: "0 auto", paddingBottom: 24 }}>
+            <TabBar
+                type="top"
+                look="brand"
+                className="vc-settings-tab-bar"
+                selectedItem={activeTab}
+                onItemSelect={setActiveTab}
+            >
+                {tabs.map(tab => <TabBar.Item key={tab} id={tab} className="vc-settings-tab-bar-item">{tab}</TabBar.Item>)}
+            </TabBar>
+            {activeTab === "AutoVcKick" && <AutoKickSection />}
+            {activeTab === "AutoJoinVc" && <AutoJoinSection />}
+            {activeTab === "userCommands" && <CommandsSection />}
         </div>
-    </ModalRoot>;
+    </Modal>;
 }
 
 function ControlCenterIcon({ height = 20, width = 20 }: { height?: number; width?: number; }) {
